@@ -1,58 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
 
-    <property name="LOG_PATH" value="/var/log/blog"/>
-    <property name="LOG_FILENAME" value="spring-profiles"/>
-
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-
-    <springProfile name="default,ide">
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-        </root>
-    </springProfile>
-
-    <springProfile name="test,prod">
-        <!-- File Appender -->
-        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <encoder>
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>http://localhost:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>application=${appName},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
                 <pattern>${FILE_LOG_PATTERN}</pattern>
-            </encoder>
-            <file>${LOG_PATH}/${LOG_FILENAME}.log</file>
-            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-                <fileNamePattern>${LOG_PATH}/${LOG_FILENAME}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-                <maxHistory>7</maxHistory>
-                <maxFileSize>100MB</maxFileSize>
-                <totalSizeCap>1GB</totalSizeCap>
-            </rollingPolicy>
-        </appender>
+            </message>
+            <sortByTime>true</sortByTime>
+        </format>
+    </appender>
 
-        <!-- Loki Appender -->
-        <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-            <http>
-                <url>http://localhost:3100/loki/api/v1/push</url>
-                <connectTimeoutMs>1000</connectTimeoutMs>
-                <readTimeoutMs>2000</readTimeoutMs>
-            </http>
-            <format>
-                <label>
-                    app=grafana-observability
-                    profile=%X{spring.profiles.active}
-                    level=%level
-                </label>
-                <messagePattern>%msg%n</messagePattern>
-            </format>
-            <batch>
-                <bufferSize>100</bufferSize>
-                <timeoutMs>2000</timeoutMs>
-            </batch>
-        </appender>
-
-        <root level="INFO">
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="LOKI"/>
-        </root>
-    </springProfile>
-
+    <root level="INFO">
+        <appender-ref ref="LOKI"/>
+    </root>
 </configuration>
